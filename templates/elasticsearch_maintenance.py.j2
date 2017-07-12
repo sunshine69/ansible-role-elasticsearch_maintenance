@@ -61,7 +61,7 @@ def maintenance_indices():
     # operations. _close, _optimize are not supported.
 
     today = datetime.today()
-    month_to_delete = today - relativedelta(months=({{ es_months_to_keep_indices }} + 1))
+    month_to_delete = today - relativedelta(months={{ es_months_to_keep_indices|int + 1 }})
     tobe_deleted_indices_string =  "*-{year}.{month}.*".format(
         year=month_to_delete.strftime("%Y"),
         month=month_to_delete.strftime("%m") )
