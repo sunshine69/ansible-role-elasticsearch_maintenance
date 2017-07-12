@@ -52,6 +52,7 @@ def making_snapshot():
 
 
 def maintenance_indices():
+{% if es_months_to_keep_indices %}
     print("Start maintenance_indices")
     # Retire indices after {{ es_months_to_keep_indices }} months. The index we
     # created in logstash.conf is in the
@@ -79,6 +80,10 @@ def maintenance_indices():
 
     # for marking the time we do that in the lambda scripts
     print("Complete maintenance routine")
+
+{% else %}
+    print "'maintenance_indices' is skipped because es_months_to_keep_indices is false"
+{% endif %}
 
 def main():
     print("Starting maintenance for elasticsearch ...")
