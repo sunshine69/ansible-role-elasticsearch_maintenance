@@ -1,2 +1,26 @@
----
-# tasks file for elasticsearch_maintenance
+- name: Register s3 snapshot repository 's3_repository'
+  uri:
+    url: "{{ es_cluster_endpoint }}/_snapshot/{{ snapshot_repository_name }}?verify=false"
+    method: PUT
+    body:
+      type: s3
+      settings:
+        bucket: "{{ es_snapshot_bucket_name }}"
+    body_format: json
+
+# Templating because ansible cron is not quite flexible to add environments
+# variables when running the cron tasks, only one env variable allowed?
+- name: Deploy the python maintenance scripts
+  template:
+    src: elasticsearch_maintenance.py.j2
+    dest: /usr/local/bin/elasticsearch_maintenance.py
+    mode: 0755
+    owner: root
+    group: root
+
+- name: Deploy the cron task to run the maintenance script
+  cron:
+    name: "elasticsearch maintenance"
+    hour: 20
+    minute: 0
+    job: /usr/local/bin/elasticsearch_maintenance.py

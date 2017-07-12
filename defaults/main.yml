@@ -1,2 +1,6 @@
----
-# defaults file for elasticsearch_maintenance
+# Vars list used in role
+daily_snapshot_name_prefix:
+snapshot_repository_name:
+es_cluster_endpoint:
+es_months_to_keep_indices:
+es_snapshot_bucket_name:
