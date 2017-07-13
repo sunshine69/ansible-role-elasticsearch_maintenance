@@ -1,31 +1,42 @@
 Role Name
 =========
 
-A brief description of the role goes here.
 
 Requirements
 ------------
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
 
 Role Variables
 --------------
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+# The prefix to be used for the daily snapshot name. The full name will be
+# appended with timestamp.
+daily_snapshot_name_prefix:
+
+# The snapshot repository name to be used in the es s3 snapshot plugin and in
+# the making snapshot routine. For each elasticsearch cluster it has its own
+# unique name (thus we can use one s3 bucket to store multiple elasticsearch
+# cluster snapshot).
+snapshot_repository_name:
+
+# The full endpoint url of the elasticsearch cluster. Used to talk to es in
+# registering the snapshot repository name and post es command for maintenance.
+es_cluster_endpoint:
+
+# How many months we keep the es indices in the system? The index of the older
+# month will be deleted.
+es_months_to_keep_indices:
+
+# The s3 bucket name to be used as es snapshot storage.
+es_snapshot_bucket_name:
 
 Dependencies
 ------------
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
 
 Example Playbook
 ----------------
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
-
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
 
 License
 -------
@@ -35,4 +46,3 @@ BSD
 Author Information
 ------------------
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
