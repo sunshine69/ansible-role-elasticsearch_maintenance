@@ -1,0 +1,98 @@
+#!/usr/bin/python
+
+# This file is only for the ELK elasticsearch instance.
+
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
+import urllib2
+
+# To allow method (any method really but for us is PUT) to be passed in
+# urllib2.Request. Lambda does not have module requests thus we need this.
+
+class MethodRequest(urllib2.Request):
+    def __init__(self, *args, **kwargs):
+        if 'method' in kwargs:
+            self._method = kwargs['method']
+            del kwargs['method']
+        else:
+            self._method = None
+        return urllib2.Request.__init__(self, *args, **kwargs)
+
+    def get_method(self, *args, **kwargs):
+        if self._method is not None:
+            return self._method
+        return urllib2.Request.get_method(self, *args, **kwargs)
+
+
+def making_snapshot():
+    print("Start making_snapshot")
+    try:
+        # allow us to manually pass the snapshot name via env
+        daily_snapshot_name = "{{ daily_snapshot_name_prefix }}-%s" % datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        wait_for_completion = "false"
+
+        opener = urllib2.build_opener(urllib2.HTTPHandler)
+        post_data = '{"ignore_unavailable": true,"include_global_state": false}'
+
+        req_url = "{elasticsearch_endpoint}/_snapshot/{snapshot_repository_name}/{daily_snapshot_name}?wait_for_completion={wait_for_completion}".format(
+                daily_snapshot_name=daily_snapshot_name,
+                snapshot_repository_name="{{ snapshot_repository_name }}",
+                elasticsearch_endpoint="{{ es_cluster_endpoint }}",
+                wait_for_completion=wait_for_completion
+              )
+
+        req = MethodRequest(req_url, data=post_data, method='PUT')
+        print("request url: '%s'" % req_url )
+        response = opener.open(req)
+        print(response.read())
+        print("Making snapshot '%s/%s' completed" % ("{{ snapshot_repository_name }}", daily_snapshot_name) )
+
+    except urllib2.HTTPError as e:
+        print("making_snapshot - Some error - %s - %s" % (e.code, e.read()))
+
+
+def maintenance_indices():
+{% if es_months_to_keep_indices %}
+    print("Start maintenance_indices")
+    # Retire indices after {{ es_months_to_keep_indices }} months. The index we
+    # created in logstash.conf is in the
+    # format, eg. syslog-%{+YYYY.MM.dd}. Without this your ES will be ever growing bigger
+    # I tried the other optimizations as well but aws es does not support these
+    # operations. _close, _optimize are not supported.
+
+    today = datetime.today()
+    month_to_delete = today - relativedelta(months={{ es_months_to_keep_indices|int + 1 }})
+    tobe_deleted_indices_string =  "*-{year}.{month}.*".format(
+        year=month_to_delete.strftime("%Y"),
+        month=month_to_delete.strftime("%m") )
+    print("tobe_deleted_indices_string: %s" % tobe_deleted_indices_string)
+    try:
+        opener = urllib2.build_opener(urllib2.HTTPHandler)
+        req = MethodRequest(
+            # No * at the end because we already put * when crafting tobe_deleted_indices_string above
+            "%s/%s" % ("{{ es_cluster_endpoint }}", tobe_deleted_indices_string),
+            method="DELETE")
+        response = opener.open(req)
+
+    except urllib2.HTTPError as e:
+        print("maintenance_indices - Some error - %s - %s" % (e.code, e.read()))
+        print("tobe_deleted_indices_string: '%s'" % tobe_deleted_indices_string )
+
+    # for marking the time we do that in the lambda scripts
+    print("Complete maintenance routine")
+
+{% else %}
+    print "'maintenance_indices' is skipped because es_months_to_keep_indices is false"
+{% endif %}
+
+def main():
+    print("Starting maintenance for elasticsearch ...")
+    maintenance_indices()
+    # this runs pretty slow and time increases as the data size increases so run
+    # @last. Ignore the timeout error in lambda function it is actually making the
+    # snapshot fine
+    making_snapshot()
+    print("es maintenance completed")
+
+if __name__ == "__main__":
+    main()
