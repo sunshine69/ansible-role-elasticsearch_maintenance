@@ -24,3 +24,28 @@
     hour: 20
     minute: 0
     job: /usr/local/bin/elasticsearch_maintenance.py
+
+- name: Get the existing index templates
+  uri:
+    url: "{{ es_cluster_endpoint }}/_cat/templates?format=json"
+    method: GET
+    body_format: json
+  register: current_index_templates_out
+
+- name: set fact current_index_templates
+  set_fact:
+    current_index_templates: "{{ current_index_templates_out.json|map(attribute='name') | list }}"
+
+- name: Deploy the index template that only use one shard per index
+  uri:
+    url: "{{ es_cluster_endpoint }}/_template/one_shard_per_index"
+    method: PUT
+    body:
+      template: "*"
+      order : 0
+      settings:
+        number_of_shards: 1
+        number_of_replicas: 1
+    version: 123
+    body_format: json
+  when: "'one_shard_per_index' not in current_index_templates"
