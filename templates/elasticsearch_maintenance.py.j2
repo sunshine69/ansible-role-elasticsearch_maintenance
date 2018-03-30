@@ -91,7 +91,9 @@ def main():
     # this runs pretty slow and time increases as the data size increases so run
     # @last. Ignore the timeout error in lambda function it is actually making the
     # snapshot fine
+{% if es_snapshot_bucket_name %}
     making_snapshot()
+{% endif %}
     print("es maintenance completed")
 
 if __name__ == "__main__":

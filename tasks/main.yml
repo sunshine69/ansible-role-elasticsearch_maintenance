@@ -7,6 +7,7 @@
       settings:
         bucket: "{{ es_snapshot_bucket_name }}"
     body_format: json
+  when: es_snapshot_bucket_name
 
 # Templating because ansible cron is not quite flexible to add environments
 # variables when running the cron tasks, only one env variable allowed?
